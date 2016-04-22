@@ -20,15 +20,13 @@
 package org.ntnunotif.wsnu.base.internal;
 
 import com.google.common.io.ByteStreams;
+import com.sun.istack.internal.NotNull;
 import org.ntnunotif.wsnu.base.net.ApplicationServer;
 import org.ntnunotif.wsnu.base.net.XMLParser;
+import org.ntnunotif.wsnu.base.soap.Soap;
 import org.ntnunotif.wsnu.base.util.InternalMessage;
 import org.ntnunotif.wsnu.base.util.Log;
 import org.ntnunotif.wsnu.base.util.Utilities;
-import org.xmlsoap.schemas.soap.envelope.Body;
-import org.xmlsoap.schemas.soap.envelope.Envelope;
-import org.xmlsoap.schemas.soap.envelope.Header;
-import org.xmlsoap.schemas.soap.envelope.ObjectFactory;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -121,20 +119,13 @@ public class SoapForwardingHub implements Hub {
         /* We have content and should deal with it */
         }else{
             Log.d("SoapForwardingHub", "Forwarding message");
-            //Envelope envelope;
             /* Try to parse and cast the message to a soap-envelope */
             try {
                 XMLParser.parse(internalMessage);
                 try {
                     // Check if message is any of the supported SOAP envelopes
                     JAXBElement message = (JAXBElement)internalMessage.getMessage();
-                    Class messageClass = message.getDeclaredType();
-                    if (messageClass.equals(org.w3._2001._12.soap_envelope.Envelope.class)) {
-
-                        /* Re-use internalMessage object for optimization */
-                        internalMessage.setMessage(message.getValue());
-                    } else if (messageClass.equals(org.xmlsoap.schemas.soap.envelope.Envelope.class)) {
-
+                    if(Soap.isSoapEnvelope(message.getValue())) {
                         /* Re-use internalMessage object for optimization */
                         internalMessage.setMessage(message.getValue());
                     }
@@ -147,7 +138,8 @@ public class SoapForwardingHub implements Hub {
                 Log.e("SoapForwardingHub", "Parse error: " + e.getMessage());
                 try {
                 // Return a generic Soap error
-                    XMLParser.writeObjectToStream(Utilities.createSoapFault("Client", "Invalid formatted message"), streamToRequestor);
+                    Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
+                    XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "Invalid formatted message"), streamToRequestor);
                     return new InternalMessage(STATUS_FAULT, null);
                 } catch (JAXBException e1) {
                     return new InternalMessage(STATUS_FAULT_INTERNAL_ERROR | STATUS_FAULT, null);
@@ -244,7 +236,8 @@ public class SoapForwardingHub implements Hub {
             } else {
                 if((returnMessage.statusCode & STATUS_FAULT_INVALID_DESTINATION) > 0){
                     try {
-                        XMLParser.writeObjectToStream(Utilities.createSoapFault("Client", "The message did not contain any information relevant to any web service at this address"), streamToRequestor);
+                        Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
+                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "The message did not contain any information relevant to any web service at this address"), streamToRequestor);
                         return returnMessage;
                     } catch (JAXBException e) {
                         e.printStackTrace();
@@ -252,7 +245,8 @@ public class SoapForwardingHub implements Hub {
                     }
                 } else {
                     try {
-                        XMLParser.writeObjectToStream(Utilities.createSoapFault("Server", "Something went wrong at the server."), streamToRequestor);
+                        Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
+                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, "Something went wrong at the server."), streamToRequestor);
                         return returnMessage;
                     } catch (JAXBException e) {
                         e.printStackTrace();
@@ -273,35 +267,22 @@ public class SoapForwardingHub implements Hub {
      * @param o the <code>Object</code> to wrap
      * @return the wrapped JAXBElement
      */
-    private Object wrapInJAXBAcceptedSoapEnvelope(Object o) {
-
+    private Object wrapInJAXBAcceptedSoapEnvelope(@NotNull Object o) {
         // Check if this is already correct type
-        if (o instanceof JAXBElement) {
-            JAXBElement element = (JAXBElement)o;
-            if (element.getDeclaredType() == Envelope.class ||
-                    element.getDeclaredType() == org.w3._2001._12.soap_envelope.Envelope.class)
-                return o;
-        }
-
-        if (o != null) {
-            // Check if it is not already wrapped in an envelope, if so wrap it
-            if (!((o instanceof org.w3._2001._12.soap_envelope.Envelope) || o instanceof Envelope)) {
-                ObjectFactory factory = new ObjectFactory();
-                Envelope env = factory.createEnvelope();
-                Body body = factory.createBody();
-                body.getAny().add(o);
-                env.setBody(body);
-                return factory.createEnvelope(env);
-            } else if (o instanceof org.w3._2001._12.soap_envelope.Envelope) {
-                org.w3._2001._12.soap_envelope.ObjectFactory factory = new org.w3._2001._12.soap_envelope.ObjectFactory();
-                return factory.createEnvelope((org.w3._2001._12.soap_envelope.Envelope) o);
-            } else if (o instanceof Envelope) {
-                ObjectFactory factory = new ObjectFactory();
-                return factory.createEnvelope((Envelope) o);
+        if (o instanceof JAXBElement && Soap.version(((JAXBElement) o).getDeclaredType()) != Soap.SoapVersion.SOAP_NOT_ENVELOPE) {
+            return o;
+        } else {
+            if(Soap.isSoapEnvelope(o)) {
+                // If we are sent an envelope, pack it in the correct JAXBElement
+                Soap soap = Soap.create(Soap.version(o.getClass()));
+                return soap.createMessage(o);
+            } else {
+                // Else pack it in some envelope and JAXBElement
+                // TODO: Make this user-settable
+                Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
+                return soap.createMessage(o);
             }
         }
-
-        return null;
     }
     /**
      * Stop the hub and its delegates.
@@ -339,15 +320,9 @@ public class SoapForwardingHub implements Hub {
                     return new InternalMessage(STATUS_FAULT_INVALID_PAYLOAD|STATUS_FAULT, null);
                 }
             } else{
-                ObjectFactory factory = new ObjectFactory();
-                Envelope envelope = new Envelope();
-                Header header = new Header();
-                Body body = new Body();
-                body.getAny().add(messageContent);
-                envelope.setBody(body);
-                envelope.setHeader(header);
-
-                InputStream messageAsStream = Utilities.convertUnknownToInputStream(factory.createEnvelope(envelope));
+                // TODO: Test this
+                Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
+                InputStream messageAsStream = Utilities.convertUnknownToInputStream(soap.createMessage(messageContent));
                 message.setMessage(messageAsStream);
                 message.statusCode = STATUS_OK|STATUS_HAS_MESSAGE|STATUS_MESSAGE_IS_INPUTSTREAM;
                 return _server.sendMessage(message);

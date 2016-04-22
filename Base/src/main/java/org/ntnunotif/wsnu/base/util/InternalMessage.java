@@ -19,6 +19,8 @@
 
 package org.ntnunotif.wsnu.base.util;
 
+import org.ntnunotif.wsnu.base.soap.Soap;
+
 /**
  * The primary message-object to be sent through the system
  * @author
@@ -43,6 +45,8 @@ public class InternalMessage {
     public static final int STATUS_MESSAGE_IS_SOAPENVELOPE = 0x4000;
     public static final int STATUS_MESSAGE_IS_STRING = 0x8000;
 
+    private Soap.SoapVersion version;
+
     /**
      * The status code of the InternalMessage. Stored as a 32-bit flag.
      */
@@ -66,6 +70,7 @@ public class InternalMessage {
     public InternalMessage(int statusCode, Object message){
         this.statusCode = statusCode;
         this._message = message;
+        this.version = Soap.SoapVersion.SOAP_1_1;
         _requestInformation = new RequestInformation();
     }
 
@@ -120,5 +125,13 @@ public class InternalMessage {
                 ", _message=" + _message +
                 ", _requestInformation=" + _requestInformation +
                 '}';
+    }
+
+    public Soap.SoapVersion getVersion() {
+        return version;
+    }
+
+    public void setVersion(Soap.SoapVersion version) {
+        this.version = version;
     }
 }

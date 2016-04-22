@@ -90,6 +90,12 @@ public class AdvancedConsumerHub extends WebService implements Hub, Notification
                 org.w3._2001._12.soap_envelope.Envelope envelope = (org.w3._2001._12.soap_envelope.Envelope)message.getMessage();
                 Notify receivedNotify = (Notify) envelope.getBody().getAny();
                 notify(receivedNotify);
+            } else if (message.getMessage() instanceof org.w3._2003._05.soap_envelope.Envelope){
+                // Do essentially the same here
+
+                org.w3._2003._05.soap_envelope.Envelope envelope = (org.w3._2003._05.soap_envelope.Envelope)message.getMessage();
+                Notify receivedNotify = (Notify) envelope.getBody().getAny();
+                notify(receivedNotify);
             } else if(message.getMessage() instanceof Notify) {
                 // And the same here
                 Notify receivedNotify = (Notify)message.getMessage();
