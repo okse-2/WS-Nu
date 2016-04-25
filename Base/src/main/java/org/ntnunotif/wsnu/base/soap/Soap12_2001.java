@@ -2,12 +2,14 @@ package org.ntnunotif.wsnu.base.soap;
 
 import org.w3._2001._12.soap_envelope.*;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
 import java.util.List;
 
 class Soap12_2001 extends Soap{
     private ObjectFactory factory;
+    private final String namespace = "http://www.w3.org/2001/12/soap-envelope";
 
     Soap12_2001() {
         factory = new ObjectFactory();
@@ -39,14 +41,20 @@ class Soap12_2001 extends Soap{
     };
 
     @Override
-    public JAXBElement createFault(SoapFaultType type, String description) {
+    public JAXBElement createFault(SoapFaultType type, String description, @Nullable JAXBElement detail) {
         ObjectFactory soapObjectFactory = new ObjectFactory();
 
         Envelope envelope = soapObjectFactory.createEnvelope();
         Body body = soapObjectFactory.createBody();
         Fault fault = soapObjectFactory.createFault();
 
-        fault.setFaultcode(new QName("http://www.w3.org/2001/12/soap-envelope", faultCodes[type.ordinal()]));
+        if(detail != null) {
+            Detail d = soapObjectFactory.createDetail();
+            d.getAny().add(detail);
+            fault.setDetail(d);
+        }
+
+        fault.setFaultcode(new QName(namespace, faultCodes[type.ordinal()]));
         fault.setFaultstring(description);
         envelope.setBody(body);
 
@@ -63,5 +71,10 @@ class Soap12_2001 extends Soap{
         } catch(NullPointerException e) {
             throw new RuntimeException("Unable to get body contents from envelope");
         }
+    }
+
+    @Override
+    public String namespace() {
+        return namespace;
     }
 }

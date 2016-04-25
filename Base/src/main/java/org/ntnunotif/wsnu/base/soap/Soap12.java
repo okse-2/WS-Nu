@@ -2,12 +2,14 @@ package org.ntnunotif.wsnu.base.soap;
 
 import org.w3._2003._05.soap_envelope.*;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
 import java.util.List;
 
 class Soap12 extends Soap{
     private ObjectFactory factory;
+    private final String namespace = "http://www.w3.org/2003/05/soap-envelope";
 
     Soap12() {
         factory = new ObjectFactory();
@@ -39,7 +41,7 @@ class Soap12 extends Soap{
     };
 
     @Override
-    public JAXBElement createFault(SoapFaultType type, String description) {
+    public JAXBElement createFault(SoapFaultType type, String description, @Nullable JAXBElement detail) {
         ObjectFactory soapObjectFactory = new ObjectFactory();
 
         Envelope envelope = soapObjectFactory.createEnvelope();
@@ -49,7 +51,7 @@ class Soap12 extends Soap{
         Faultreason reason = soapObjectFactory.createFaultreason();
         Reasontext reasonText = soapObjectFactory.createReasontext();
 
-        code.setValue(new QName("http://www.w3.org/2003/05/soap-envelope", faultCodes[type.ordinal()]));
+        code.setValue(new QName(namespace, faultCodes[type.ordinal()]));
         fault.setCode(code);
         reasonText.setValue(description);
         reason.getText().add(reasonText);
@@ -69,5 +71,10 @@ class Soap12 extends Soap{
         } catch(NullPointerException e) {
             throw new RuntimeException("Unable to get body contents from envelope");
         }
+    }
+
+    @Override
+    public String namespace() {
+        return namespace;
     }
 }

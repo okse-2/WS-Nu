@@ -1,5 +1,6 @@
 package org.ntnunotif.wsnu.base.soap;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBElement;
 import java.util.List;
 
@@ -60,8 +61,13 @@ public abstract class Soap {
         return version(elem.getDeclaredType());
     }
 
+    public JAXBElement createFault(SoapFaultType type, String description) {
+        return createFault(type, description, null);
+    };
+
     public abstract SoapVersion version();
     public abstract JAXBElement createMessage(Object o);
-    public abstract JAXBElement createFault(SoapFaultType type, String description);
+    public abstract JAXBElement createFault(SoapFaultType type, String description, @Nullable JAXBElement detail);
     public abstract List<Object> getBodyContent(Object envelope);
+    public abstract String namespace();
 }

@@ -5,12 +5,14 @@ import org.xmlsoap.schemas.soap.envelope.Envelope;
 import org.xmlsoap.schemas.soap.envelope.Fault;
 import org.xmlsoap.schemas.soap.envelope.ObjectFactory;
 
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBElement;
 import javax.xml.namespace.QName;
 import java.util.List;
 
 class Soap11 extends Soap{
     private ObjectFactory factory;
+    private final String namespace = "http://schemas.xmlsoap.org/soap/envelope/";
 
     Soap11() {
         factory = new ObjectFactory();
@@ -42,14 +44,14 @@ class Soap11 extends Soap{
     };
 
     @Override
-    public JAXBElement createFault(SoapFaultType type, String description) {
+    public JAXBElement createFault(SoapFaultType type, String description, @Nullable JAXBElement detail) {
         ObjectFactory soapObjectFactory = new ObjectFactory();
 
         Envelope envelope = soapObjectFactory.createEnvelope();
         Body body = soapObjectFactory.createBody();
         Fault fault = soapObjectFactory.createFault();
 
-        fault.setFaultcode(new QName("http://schemas.xmlsoap.org/soap/envelope/", faultCodes[type.ordinal()]));
+        fault.setFaultcode(new QName(namespace, faultCodes[type.ordinal()]));
         fault.setFaultstring(description);
         envelope.setBody(body);
 
@@ -66,5 +68,10 @@ class Soap11 extends Soap{
         } catch(NullPointerException e) {
             throw new RuntimeException("Unable to get body contents from envelope");
         }
+    }
+
+    @Override
+    public String namespace() {
+        return namespace;
     }
 }

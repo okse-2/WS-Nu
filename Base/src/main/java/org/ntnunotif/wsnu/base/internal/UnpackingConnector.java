@@ -134,14 +134,18 @@ public class UnpackingConnector extends WebServiceConnector {
 
                                 Object method_returnedData;
 
+                                if(xmlRootElement.name().equals("Subscribe")) {
+                                    method_returnedData = method.invoke(_webService, message, soap.version());
+                                } else {
                                 /* Spit this error-message out, however try and send the message regardless*/
-                                method_returnedData = method.invoke(_webService, message);
+                                    method_returnedData = method.invoke(_webService, message);
+                                }
 
                                 /* If is the case, nothing is being returned */
                                 if (method.getReturnType().equals(Void.TYPE)) {
-                                    returnMessage = new InternalMessage(STATUS_OK, null);
+                                    returnMessage = new InternalMessage(STATUS_OK, null, soap.version());
                                 } else {
-                                    returnMessage = new InternalMessage(STATUS_OK | STATUS_HAS_MESSAGE, method_returnedData);
+                                    returnMessage = new InternalMessage(STATUS_OK | STATUS_HAS_MESSAGE, method_returnedData, soap.version());
                                 }
                                 return returnMessage;
 
@@ -152,17 +156,17 @@ public class UnpackingConnector extends WebServiceConnector {
                                 return new InternalMessage(STATUS_FAULT|STATUS_FAULT_INTERNAL_ERROR, null);
                             } catch (InvocationTargetException e) {
                                 Log.d("UnpackingConnector", "Caught exception at the web service " + e.getCause().getClass() + " | " + e.getMessage());
-                                return new InternalMessage(STATUS_FAULT|STATUS_EXCEPTION_SHOULD_BE_HANDLED, e.getTargetException());
+                                return new InternalMessage(STATUS_FAULT|STATUS_EXCEPTION_SHOULD_BE_HANDLED, e.getTargetException(), soap.version());
                             }
                         }else{
                             Log.d("UnpackingConnector", "Invalid destination");
-                            return new InternalMessage(STATUS_FAULT|STATUS_FAULT_INVALID_DESTINATION, null);
+                            return new InternalMessage(STATUS_FAULT|STATUS_FAULT_INVALID_DESTINATION, null, soap.version());
                         }
                     }
                 }
             }
             Log.d("UnpackingConnector", "Unknonwn method");
-            return new InternalMessage(STATUS_FAULT|STATUS_FAULT_UNKNOWN_METHOD, null);
+            return new InternalMessage(STATUS_FAULT|STATUS_FAULT_UNKNOWN_METHOD, null, soap.version());
         }
     }
 }

@@ -74,6 +74,13 @@ public class InternalMessage {
         _requestInformation = new RequestInformation();
     }
 
+    public InternalMessage(int statusCode, Object message, Soap.SoapVersion version){
+        this.statusCode = statusCode;
+        this._message = message;
+        this.version = version;
+        _requestInformation = new RequestInformation();
+    }
+
     /**
      * Constructor taking a status code, message and requestInformation
      * @param statusCode

@@ -139,7 +139,7 @@ public class SoapForwardingHub implements Hub {
                 try {
                 // Return a generic Soap error
                     Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
-                    XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "Invalid formatted message"), streamToRequestor);
+                    XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "Invalid formatted message", null), streamToRequestor);
                     return new InternalMessage(STATUS_FAULT, null);
                 } catch (JAXBException e1) {
                     return new InternalMessage(STATUS_FAULT_INTERNAL_ERROR | STATUS_FAULT, null);
@@ -222,7 +222,7 @@ public class SoapForwardingHub implements Hub {
             if((returnMessage.statusCode & STATUS_EXCEPTION_SHOULD_BE_HANDLED) > 0){
                 Log.d("SoapForwardingHub", "Exception thrown up the stack");
                 try{
-                    Utilities.attemptToParseException((Exception) returnMessage.getMessage(), streamToRequestor);
+                    Utilities.attemptToParseException((Exception) returnMessage.getMessage(), streamToRequestor, returnMessage.getVersion());
                     Log.d("SoapForwardingHub", "Returning parsed error");
                     return new InternalMessage(STATUS_FAULT, null);
                 }catch(IllegalArgumentException e){
@@ -236,8 +236,8 @@ public class SoapForwardingHub implements Hub {
             } else {
                 if((returnMessage.statusCode & STATUS_FAULT_INVALID_DESTINATION) > 0){
                     try {
-                        Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
-                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "The message did not contain any information relevant to any web service at this address"), streamToRequestor);
+                        Soap soap = Soap.create(returnMessage.getVersion());
+                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_CLIENT, "The message did not contain any information relevant to any web service at this address", null), streamToRequestor);
                         return returnMessage;
                     } catch (JAXBException e) {
                         e.printStackTrace();
@@ -245,8 +245,8 @@ public class SoapForwardingHub implements Hub {
                     }
                 } else {
                     try {
-                        Soap soap = Soap.create(Soap.SoapVersion.SOAP_1_1);
-                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, "Something went wrong at the server."), streamToRequestor);
+                        Soap soap = Soap.create(returnMessage.getVersion());
+                        XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, "Something went wrong at the server.", null), streamToRequestor);
                         return returnMessage;
                     } catch (JAXBException e) {
                         e.printStackTrace();

@@ -21,7 +21,7 @@ package org.ntnunotif.wsnu.base.util;
 
 import com.google.common.collect.Lists;
 import org.ntnunotif.wsnu.base.net.XMLParser;
-import org.xmlsoap.schemas.soap.envelope.*;
+import org.ntnunotif.wsnu.base.soap.Soap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -225,9 +225,9 @@ public class Utilities {
         return currentClassFields;
     }
 
-    public static OutputStream attemptToParseException(Exception exception) {
+    public static OutputStream attemptToParseException(Exception exception, Soap.SoapVersion version) {
         ByteArrayOutputStream streamTo = new ByteArrayOutputStream();
-        attemptToParseException(exception, streamTo);
+        attemptToParseException(exception, streamTo, version);
         return streamTo;
     }
 
@@ -244,9 +244,7 @@ public class Utilities {
      */
     //TODO: Should we throw an IllegalArgumentException here, if we get an unparseable object?
     //TODO: Invoke proper method from an object factory
-    public static void attemptToParseException(Exception exception, OutputStream streamTo) {
-
-        ObjectFactory soapObjectFactory = new ObjectFactory();
+    public static void attemptToParseException(Exception exception, OutputStream streamTo, Soap.SoapVersion version) {
 
         WebFault webFaultAnnotation = (WebFault) findAnnotation(exception, WebFault.class);
 
@@ -269,30 +267,14 @@ public class Utilities {
         namespaceName = webFaultAnnotation.targetNamespace();
 
         /* Create fault-soap message */
-        Envelope envelope = soapObjectFactory.createEnvelope();
-        Body body = soapObjectFactory.createBody();
-        Header header = soapObjectFactory.createHeader();
-        Fault fault = soapObjectFactory.createFault();
-        Detail detail = soapObjectFactory.createDetail();
-
-        fault.setFaultcode(new QName("http://schemas.xmlsoap.org/soap/envelope/", "Server"));
-        fault.setFaultactor(exception.getMessage());
-        fault.setDetail(detail);
-        envelope.setBody(body);
-        envelope.setHeader(header);
-
-        JAXBElement toSend = soapObjectFactory.createEnvelope(envelope);
+        Soap soap = Soap.create(version);
 
         Method method;
         Log.d("Utilities.attemptToParseException", "Got exception " + exception.getClass() + " to parse");
 
         try {
-            detail.getAny().add(new JAXBElement(new QName(namespaceName, faultName), exception.getClass(), null, exception));
-
-            fault.setFaultstring(exception.getMessage());
-
-            body.getAny().add(new ObjectFactory().createFault(fault));
-            XMLParser.writeObjectToStream(toSend, streamTo);
+            JAXBElement detail = new JAXBElement(new QName(namespaceName, faultName), exception.getClass(), null, exception);
+            XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, exception.getMessage(), detail), streamTo);
             return;
         /* We couldn't write it directly, lets try and get some information. Primarily by looking for a method named
         * getFaultInfo, then any other method named info, and then trying every other method */
@@ -300,19 +282,13 @@ public class Utilities {
             Log.d("Utilities.attemptToParseException", "Exception could not be parsed directly: " + e.getMessage());
         }
 
-        /* Reset the detail and the body. And create a new stream */
-        detail.getAny().clear();
-        body.getAny().clear();
-
         /* This is default for all Oasis' exceptions */
         if (hasMethodWithName(exception.getClass(), "getFaultInfo")) {
             method = getMethodByName(exception.getClass(), "getFaultInfo");
             try {
                 Object data = method.invoke(exception);
-                detail.getAny().add(new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data));
-                fault.setFaultstring(exception.getMessage());
-                body.getAny().add(new ObjectFactory().createFault(fault));
-                XMLParser.writeObjectToStream(toSend, streamTo);
+                JAXBElement detail = new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data);
+                XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, exception.getMessage(), detail), streamTo);
                 return;
             } catch (Exception f) {
                 f.printStackTrace();
@@ -320,51 +296,36 @@ public class Utilities {
             }
         }
 
-        detail.getAny().clear();
-        body.getAny().clear();
-
         /* Tries for a method containing either fault or info in its name */
         if (hasMethodWithRegex(exception.getClass(), ".*((([Ff][Aa][Uu][Ll][Tt])|([Ii][Nn][Ff][Oo]))+).*")) {
             method = getMethodByRegex(exception.getClass(), ".*((([Ff][Aa][Uu][Ll][Tt])|([Ii][Nn][Ff][Oo]))+).*");
             try {
                 Object data = method.invoke(exception);
-                detail.getAny().add(new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data));
-                fault.setFaultstring(exception.getMessage());
-                body.getAny().add(new ObjectFactory().createFault(fault));
-                XMLParser.writeObjectToStream(toSend, streamTo);
+                JAXBElement detail = new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data);
+                XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, exception.getMessage(), detail), streamTo);
                 return;
             } catch (Exception g) {
                 Log.d("Utilities.attemptToParseException", "Any fault/info function failed to prase: " + g.getMessage());
             }
         }
 
-        detail.getAny().clear();
-        body.getAny().clear();
-
         /* Try every method */
         for (Method method1 : exception.getClass().getMethods()) {
             try {
                 Object data = method1.invoke(exception);
-                detail.getAny().add(new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data));
-                fault.setFaultstring(exception.getMessage());
-                body.getAny().add(new ObjectFactory().createFault(fault));
-                XMLParser.writeObjectToStream(toSend, streamTo);
+                JAXBElement detail = new JAXBElement(new QName(namespaceName, faultName), data.getClass(), null, data);
+                XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, exception.getMessage(), detail), streamTo);
                 return;
             } catch (Exception h) {
                 continue;
             }
         }
 
-        detail.getAny().clear();
-        body.getAny().clear();
-
         /* Try every field */
         for (Field field : getFieldsUpTo(exception.getClass(), null)) {
             try {
-                detail.getAny().add(new JAXBElement(new QName(namespaceName, faultName), field.getClass(), null, field));
-                fault.setFaultstring(exception.getMessage());
-                body.getAny().add(new ObjectFactory().createFault(fault));
-                XMLParser.writeObjectToStream(toSend, streamTo);
+                JAXBElement detail = new JAXBElement(new QName(namespaceName, faultName), field.getClass(), null, field);
+                XMLParser.writeObjectToStream(soap.createFault(Soap.SoapFaultType.SOAP_SERVER, exception.getMessage(), detail), streamTo);
                 return;
             } catch (JAXBException e) {
                 continue;
