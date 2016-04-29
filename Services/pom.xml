@@ -3,11 +3,11 @@
     <parent>
         <groupId>org.ntnunotif.wsnu</groupId>
         <artifactId>wsnu</artifactId>
-        <version>0.4-SNAPSHOT</version>
+        <version>0.4-okse</version>
     </parent>
 
   <artifactId>wsnu-services</artifactId>
-  <version>0.4-SNAPSHOT</version>
+  <version>0.4-okse</version>
   <packaging>jar</packaging>
 
   <name>Services</name>
@@ -60,7 +60,7 @@
       <dependency>
           <groupId>org.ntnunotif.wsnu</groupId>
           <artifactId>wsnu-base</artifactId>
-          <version>0.4-SNAPSHOT</version>
+          <version>0.4-okse</version>
       </dependency>
       <dependency>
           <groupId>com.google.code.findbugs</groupId>
@@ -70,7 +70,7 @@
     <dependency>
       <groupId>org.ntnunotif.wsnu</groupId>
       <artifactId>wsnu-base</artifactId>
-      <version>0.4-SNAPSHOT</version>
+      <version>0.4-okse</version>
     </dependency>
   </dependencies>
 </project>

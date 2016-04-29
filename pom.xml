@@ -2,13 +2,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <groupId>org.ntnunotif.wsnu</groupId>
     <artifactId>wsnu</artifactId>
-    <version>0.4-SNAPSHOT</version>
+    <version>0.4-okse</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -16,12 +16,6 @@
       <module>Examples</module>
       <module>Services</module>
     </modules>
-    <scm>
-      <connection>scm:git:git@github.com:tOgg1/WS-Nu.git</connection>
-      <url>scm:git:git@github.com:tOgg1/WS-Nu.git</url>
-      <developerConnection>scm:git:git@github.com:tOgg1/WS-Nu.git</developerConnection>
-      <tag>HEAD</tag>
-    </scm>
     <build>
       <plugins>
         <plugin>

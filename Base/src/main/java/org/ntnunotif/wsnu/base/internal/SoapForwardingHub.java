@@ -20,7 +20,6 @@
 package org.ntnunotif.wsnu.base.internal;
 
 import com.google.common.io.ByteStreams;
-import com.sun.istack.internal.NotNull;
 import org.ntnunotif.wsnu.base.net.ApplicationServer;
 import org.ntnunotif.wsnu.base.net.XMLParser;
 import org.ntnunotif.wsnu.base.soap.Soap;
@@ -267,7 +266,7 @@ public class SoapForwardingHub implements Hub {
      * @param o the <code>Object</code> to wrap
      * @return the wrapped JAXBElement
      */
-    private Object wrapInJAXBAcceptedSoapEnvelope(@NotNull Object o) {
+    private Object wrapInJAXBAcceptedSoapEnvelope(Object o) {
         // Check if this is already correct type
         if (o instanceof JAXBElement && Soap.version(((JAXBElement) o).getDeclaredType()) != Soap.SoapVersion.SOAP_NOT_ENVELOPE) {
             return o;
