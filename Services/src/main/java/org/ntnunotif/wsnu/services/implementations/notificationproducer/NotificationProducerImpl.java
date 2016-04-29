@@ -21,6 +21,7 @@ package org.ntnunotif.wsnu.services.implementations.notificationproducer;
 
 import org.ntnunotif.wsnu.base.internal.Hub;
 import org.ntnunotif.wsnu.base.net.NuNamespaceContextResolver;
+import org.ntnunotif.wsnu.base.soap.Soap;
 import org.ntnunotif.wsnu.base.topics.TopicUtils;
 import org.ntnunotif.wsnu.base.topics.TopicValidator;
 import org.ntnunotif.wsnu.base.util.Log;
@@ -211,6 +212,12 @@ public class NotificationProducerImpl extends AbstractNotificationProducer {
         super.sendNotification(notify, namespaceContextResolver);
     }
 
+    // TODO: Ugly workaround for feature fix in OKSE. The fix should be moved to WS-Nu and done properly
+    @Override
+    public SubscribeResponse subscribe(Subscribe subscribeRequest) {
+        throw new RuntimeException("This should not be called");
+    }
+
     /**
      * The Subscribe request message as defined by the WS-N specification.
      *
@@ -230,10 +237,9 @@ public class NotificationProducerImpl extends AbstractNotificationProducer {
      * @throws TopicNotSupportedFault If the topic in some way is unknown or unsupported.
      * @throws InvalidMessageContentExpressionFault Never.
      */
-    @Override
     @WebMethod(operationName = "Subscribe")
     public SubscribeResponse subscribe(@WebParam(partName = "SubscribeRequest", name = "Subscribe",
-            targetNamespace = "http://docs.oasis-open.org/wsn/b-2") Subscribe subscribeRequest)
+            targetNamespace = "http://docs.oasis-open.org/wsn/b-2") Subscribe subscribeRequest, Soap.SoapVersion version)
             throws NotifyMessageNotSupportedFault, UnrecognizedPolicyRequestFault, TopicExpressionDialectUnknownFault,
             ResourceUnknownFault, InvalidTopicExpressionFault, UnsupportedPolicyRequestFault, InvalidFilterFault,
             InvalidProducerPropertiesExpressionFault, UnacceptableInitialTerminationTimeFault,
